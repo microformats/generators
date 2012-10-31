@@ -173,7 +173,8 @@
            var tag_list = tags.split(',');
            var temp = '';
            for (var i in tag_list) {
-               temp += templates.tag.process({term : trim(tag_list[i]), url : 'http://kitchen.technorati.com/contacts/tag/' + trim(tag_list[i])}) + ' ';
+               if (i>0) { temp+= ', '; }
+               temp += templates.tag.process({term : trim(tag_list[i]), url : 'http://kitchen.technorati.com/contacts/tag/' + trim(tag_list[i])});
            }
            resultstr += templates.tags.process({tags : temp})
        }
@@ -278,7 +279,7 @@
   <input type="text" id="jabber" /> 
  </div>
  <div class="field">
-  <label for="tags">tags (comma separated)</label>
+  <label for="tags">Categories (comma separated)</label>
   <input type="text" id="tags" />
  </div>
  <div class="submit">
