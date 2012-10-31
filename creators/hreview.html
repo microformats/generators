@@ -1,0 +1,470 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+  <title>hReview Creator</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link rel="copyright" href="#copyright" title="Copyright" />
+  <meta name="author" lang="en" content="Ryan King" />
+  <meta name="author" lang="tr" content="Tantek Çelik" />
+  <style type="text/css">
+  /*<![CDATA[*/
+    abbr {border-bottom:none}
+    label { text-align:right; width:6em; padding-right:.2em; 
+                font-weight:bold; line-height:1.9em }
+    fieldset>fieldset>div>label{width:4.7em}
+    div.field label:first-child {float:left; clear:left}
+    div.field { margin-bottom:.2em; font-size:smaller }
+    div.field input { width: 16em; line-height:2em }
+    div.submit { margin:1em 0 1em 7em }
+    .submit button,.submit input { margin-left:1em }
+    div.inputs { width:31em; float:left; margin-right:2em }
+    form,form>fieldset { margin:0 }
+    h2 { margin:.3em 0 .1em 0; font-size:1em }
+    div.output { float:left }
+    div#preview { clear:left; padding:.5em; background:#ccc; border:1px solid black; margin-right:2em }
+    div.about { clear:both; padding-top:4em }
+    #review-date-hour,#review-date-minute {width:2em}
+    .rating{font-family:"Hiragino Kaku Gothic Pro"}
+    #timezone {width:8.5em}
+    #description{vertical-align:top;}
+    #summary-label{padding-left:.5em}
+    #item-url,#imageurl{width:25em}
+    #previewblock{clear:left}
+    textarea{font-family:sans-serif; font-size:12px;}
+    #region {width:2em}
+    #postal {width:5em}
+    #city {width:12em}
+  /*]]>*/
+  </style>
+
+  <script type="text/javascript" src="../lib/jquery-1.2.1.pack.js"></script>
+  <script type="text/javascript" src="../lib/DomCreate.js"></script>
+  <script type="text/javascript" src="../lib/dom.js"></script>
+  <script type="text/javascript" src="hreview.js"></script>
+  
+  <script type="text/javascript">
+  //<![CDATA[
+    var outputfield = "#samplecode";
+
+    var dirty_flag = true;
+
+    function dirty() {
+      dirty_flag = true;
+    }
+
+    function codeit() {
+      if(!dirty_flag) {
+        setTimeout("codeit()", 500);
+        return;
+      }
+
+      var rating =             $("#rating").val();
+      var item_name =          $("#item-name").val();
+      var street =             $("#street").val();
+      var city =               $("#city").val();
+      var region =             $("#region").val();
+      var postal =             $("#postal").val();
+      var country =            $('#country').val();
+      var phone =              $("#phone").val();
+      var reviewer =           $("#reviewer").val();
+      var item_url =           $("#item-url").val();
+      var imageUrl =           $("#imageurl").val();
+      var summary =            $("#summary").val();
+      var item_type =          $("#item-type").val();
+      var review_date_year =   $("#review-date-year").val();
+      var review_date_month =  $("#review-date-month").val();
+      var review_date_day =    $("#review-date-day").val();
+      var review_date_hour =   $("#review-date-hour").val();
+      var review_date_minute = $("#review-date-minute").val();
+      var description =        $("#description").val();
+      var timezone =           $('#timezone').val();
+
+      var monthText = $('#review-date-month')[0].options[$('#review-date-month')[0].selectedIndex].text;
+      var dayText =   $('#review-date-day')[0].options[$('#review-date-day')[0].selectedIndex].text;
+      var yearText =  $('#review-date-year')[0].options[$('#review-date-year')[0].selectedIndex].text;
+
+      var dtOut = monthText + ' ' + dayText + ', ' + yearText;
+
+      if(review_date_minute) {review_date_minute = pad(review_date_minute);}
+      if(review_date_hour) {review_date_hour = pad(review_date_hour);}
+
+      var dt = format_dt(review_date_year, review_date_month, review_date_day, review_date_hour, review_date_minute, timezone);
+
+      if(item_type == 'person' || item_type == 'business') {
+        var vcard = true;
+        if(street || city || region || postal || country) var vcard_extended = true;
+      }
+      
+      var result = DIV({'class' : 'hreview', 'id' : (summary != '' ? 'hreview-' + summary.replace(/ /g, '-'): '')});
+      if(summary)   appendChildNodes(result, H2({'class' : 'summary'}, escape_output(summary)));
+      if(dt)        appendChildNodes(result, ABBR({'class' : 'dtreviewed', 'title' : dt}, dtOut));
+      if(reviewer)  appendChildNodes(result, '  by ', SPAN({'class' : 'reviewer vcard'}, SPAN({'class' : 'fn'}, escape_output(reviewer))));
+      if(item_type) appendChildNodes(result, SPAN({'class' : 'type', 'style' : {display: 'none'}}, item_type));
+
+      if(vcard) {
+        vcard_element = DIV({'class' : 'item vcard'});
+        if (item_url && item_url.match(/http:\/\/.*\..{2,4}.*/)) {
+          if (item_type != 'business') {
+            var class_string = 'url fn';
+          } else {
+            var class_string = 'url fn org';
+          }
+          var anchor = A({'href' : item_url, 'class' : class_string}, escape_output(item_name));
+          appendChildNodes(vcard_element, anchor);
+          if(imageUrl) replaceChildNodes(anchor, IMG({'alt': "photo of '" + escape_output(item_name) + "'", 'src' : escape_output(imageUrl), 'class': 'photo'}), escape_output(item_name));
+        } else if(item_name && item_type == 'business') {
+          appendChildNodes(vcard_element, SPAN({'class' : 'fn org'}, escape_output(item_name)));
+        } else {
+          if(imageUrl) appendChildNodes(result, IMG({'alt': "photo of '" + escape_output(item_name) + "'", 'src' : escape_output(imageUrl), 'class': 'photo'}));
+        }
+
+        if(vcard_extended) { 
+          var props = new Array;
+          if(street)  props.push(DIV({'class' : 'street-address'}, escape_output(street)));
+          if(city)    props.push(SPAN({'class' : 'locality'}, escape_output(city)));
+          if(region)  props.push(SPAN({'class' : 'region'}, ' ' , escape_output(region)), ', ');
+          if(postal)  props.push(SPAN({'class' : 'postal-code'}, ' ', escape_output(postal)));
+          if(country) props.push(DIV({'class' : 'country-name'}, escape_output(country)));
+
+          if(phone) appendChildNodes(vcard_element, DIV({'class' : 'tel'}, escape_output(phone)));
+
+          appendChildNodes(vcard_element, DIV({'class' : 'adr'}, props));
+        }
+
+        appendChildNodes(result, vcard_element);
+      } else if (item_name || imageUrl) {
+        if(imageUrl)  appendChildNodes(result, IMG({'alt': "photo of '" + escape_output(item_name) + "'", 'src' : escape_output(imageUrl), 'class': 'photo'}));
+        if(item_name) {
+          if (item_url) {
+            appendChildNodes(result, DIV({'class' : 'item'}, A({'class' : 'fn url', 'href' : item_url}, escape_output(item_name))));
+          } else {
+            appendChildNodes(result, DIV({'class' : 'item'}, SPAN({'class' : 'fn'}, escape_output(item_name))));
+          }
+        }
+      }
+
+      var stars  = rating_stars(rating);
+      
+      if(description){
+        var description_element = BLOCKQUOTE({'class' : 'description'});
+        var paras = description.split("\n\n");
+        if(rating) {
+          appendChildNodes(description_element, P({}, ABBR({'title' : rating, 'class' : 'rating'}, unescape(rating_stars)), ' ', escape_output(paras[0])));
+          for(var i = 1; i < paras.length; i++){
+            appendChildNodes(description_element, P({}, escape_output(paras[i])));
+          }
+        } else {
+          for(var i = 0; i < paras.length; i++){
+            appendChildNodes(description_element, P({}, escape_output(paras[i])));
+          }
+
+        }
+        appendChildNodes(result, description_element);
+      } else if (rating) {
+        appendChildNodes(result, ABBR({'title' : rating, 'class' : 'rating'}, stars));
+      }
+      appendChildNodes(result, SPAN({'class' : 'version', 'style' : {display: 'none'}}, '0.3'));
+
+      appendChildNodes(result,
+          P({'style' : {font_size: 'smaller'}}, 
+             'This ', 
+               A({'href' : 'http://microformats.org/wiki/hreview'}, 'hReview'),
+               ' brought to you by the ', 
+               A({'href' : 'http://microformats.org/code/hreview/creator'}, 
+               'hReview Creator'), '.'
+             
+           )
+         );
+
+      var resultstr = appendChildNodes(DIV(), result).innerHTML;
+      $(outputfield).val(resultstr);
+      $("#preview").html(resultstr);
+      var regex = /\n/gi;
+      var temp = resultstr.replace(regex,' ');
+      temp = temp.replace(/\s{2,}/gi,' ');
+      $('#compactcode').val(temp);
+      dirty_flag = false;
+      setTimeout("codeit()", 500);
+    }
+
+    function vcard(){
+      var type = $('#item-type').val();
+      var inputs = $('div.vcard-extended');
+      if (type == 'business') {
+        for(var i = 0; i < inputs.length; i++) {
+          inputs[i].style.display = 'block'
+        }
+      } else {
+        for(var i = 0; i < inputs.length; i++) {
+          inputs[i].style.display = 'none'
+        }
+      }
+    }
+
+    function doinit() {
+      $('input').keyup(window.dirty).click(window.dirty);
+      $('select').change(window.dirty);
+      $('textarea').keyup(window.dirty).click(window.dirty);
+      $('#item-type').change(window.vcard);
+      vcard();
+      doreset();
+    }
+
+    function escape_output(input){
+      //this is not the most robust solution, but it should cover most cases
+      var amp = /[\s]&[\s]/gi;
+      var lt = /\s\<\s/gi;
+      var gt = /\s>\s/gi;
+
+      var temp = input.replace(amp,' &amp; ');
+      temp = temp.replace(lt,' &lt; ');
+      var output = temp.replace(gt,' &gt; ');
+      return output;
+    }
+
+    function doreset() {
+      var d = new Date();
+      $('#review-date-year').val(d.getFullYear());
+      $('#review-date-month')[0].selectedIndex = d.getMonth();
+      $('#review-date-day').val(pad(d.getDate()));
+      $('#review-date-hour').val(d.getHours());
+      $('#review-date-minute').val(pad(d.getMinutes()));
+      var timezone = d.getTimezoneOffset();
+
+      timezone = -timezone / 60;
+
+      timezone = timezone + ":00";
+      if(timezone.length == 5) timezone = timezone.charAt(0) + "0" + timezone.substring(1);
+
+      if(parseInt(timezone) > 0) {
+        timezone = "+" + timezone;
+      }
+
+      $('#timezone').val(timezone);
+
+      setTimeout("codeit()", 500);
+    }
+
+    window.onload = doinit;
+  //]]>
+  </script>
+</head>
+<body>
+  <h1><a href="http://microformats.org/wiki/hreview">hReview</a> Creator</h1>
+
+  <div class="inputs">
+    <form action="" onreset="doreset();">
+      <fieldset>
+        <legend><a href="http://microformats.org/wiki/hreview">hReview</a>-o-matic</legend>
+        <fieldset>
+          <legend title="one of name, url or photo url is required">item*</legend>
+          <div class="field">
+            <label for="item-name">name</label>
+            <input type="text" id="item-name" /> 
+            <label for="item-type" style="float:none">type</label>
+            <select id="item-type">
+              <option></option>
+              <option>product</option>
+              <option>business</option>
+              <option>event</option>
+              <option>person</option>
+              <option>place</option>
+              <option>website</option>
+              <option>url</option>
+            </select>
+          </div>
+          <div class="field vcard-extended">
+             <label for="street" >street</label>
+             <input type="text" id="street" />
+          </div>
+          <div class="field vcard-extended">
+             <label for="city">city</label>
+             <input type="text" id="city" />
+             <label for="region">region</label>
+             <input type="text" id="region" />
+             <label for="postal">postal</label>
+             <input type="text" id="postal" />
+          </div>
+          <div class="field vcard-extended">
+            <label for="country">country</label>
+            <input type="text" name="country" value="" id="country" />
+          </div>
+          <div class="field vcard-extended">
+             <label for="phone">phone</label>
+             <input type="text" id="phone" />
+          </div>
+          <div class="field">
+             <label for="item-url">url</label>
+             <input type="text" id="item-url" />
+          </div>
+          <div class="field">
+             <label for="imageurl">photo url</label>
+             <input type="text" id="imageurl" /> 
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="rating">rating</label>
+          <select id="rating">
+            <option></option>
+            <option value="1" label="&#9733;">1</option>
+            <option value="2" label="&#9733;&#9733;">2</option>
+            <option value="3" label="&#9733;&#9733;&#9733;">3</option>
+            <option value="4" label="&#9733;&#9733;&#9733;&#9733;">4</option>
+            <option value="5" label="&#9733;&#9733;&#9733;&#9733;&#9733;">5</option>
+          </select>
+          <label for="summary" id="summary-label">summary</label>
+          <input type="text" id="summary" />
+        </div>
+        <div class="field">
+         <label for="description">description</label>
+         <textarea id="description" rows="10" cols="47"></textarea>
+        </div>
+        <div class="field">
+          <label for="review-date-month">review date</label>
+          <select id="review-date-month">
+            <option value="01">Jan</option>
+            <option value="02">Feb</option>
+            <option value="03">Mar</option>
+            <option value="04">Apr</option>
+            <option value="05">May</option>
+            <option value="06">Jun</option>
+            <option value="07">Jul</option>
+            <option value="08">Aug</option>
+            <option value="09">Sep</option>
+            <option value="10">Oct</option>
+            <option value="11">Nov</option>
+            <option value="12">Dec</option>
+          </select>
+          <select id="review-date-day">
+            <option value="01">1</option>
+            <option value="02">2</option>
+            <option value="03">3</option>
+            <option value="04">4</option>
+            <option value="05">5</option>
+            <option value="06">6</option>
+            <option value="07">7</option>
+            <option value="08">8</option>
+            <option value="09">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
+            <option value="29">29</option>
+            <option value="30">30</option>
+            <option value="31">31</option>
+          </select>
+          <select id="review-date-year">
+            <option value="2004">2004</option>
+            <option value="2005">2005</option>
+            <option value="2006">2006</option>
+            <option value="2007">2007</option>
+            <option value="2008">2008</option>
+          </select>
+          <input type="text" id="review-date-hour" maxlength="2" /> :
+          <input type="text" id="review-date-minute" maxlength="2" />
+          <label for="timezone" style="float:none;clear:none">TZ</label>
+          <select id="timezone">
+            <option value="">none</option>
+            <option value="-12:00">-12 (IDLW)</option>
+            <option value="-11:00">-11 (NT)</option>
+            <option value="-10:00">-10 (HST)</option>
+            <option value="-09:00">-9 (AKST)</option>
+            <option value="-08:00">-8 (PST/AKDT)</option>
+            <option value="-07:00">-7 (MST/PDT)</option>
+            <option value="-06:00">-6 (CST/MDT)</option>
+            <option value="-05:00">-5 (EST/CDT)</option>
+            <option value="-04:00">-4 (AST/EDT)</option>
+            <option value="-03:45">-3:45</option>
+            <option value="-03:30">-3:30</option>
+            <option value="-03:00">-3 (ADT)</option>
+            <option value="-02:00">-2 (AT)</option>
+            <option value="-01:00">-1 (WAT)</option>
+            <option value="Z">+0 (GMT/UTC)</option>
+            <option value="+01:00">+1 (CET/BST/IST/WEST)</option>
+            <option value="+02:00">+2 (EET/CEST)</option>
+            <option value="+03:00">+3 (MSK/EEST)</option>
+            <option value="+03:30">+3:30 (Iran)</option>
+            <option value="+04:00">+4 (ZP4/MSD)</option>
+            <option value="+04:30">+4:30 (Afghanistan)</option>
+            <option value="+05:00">+5 (ZP5)</option>
+            <option value="+05:30">+5:30 (India)</option>
+            <option value="+06:00">+6 (ZP6)</option>
+            <option value="+06:30">+6:30 (Burma)</option>
+            <option value="+07:00">+7 (WAST)</option>
+            <option value="+08:00">+8 (WST)</option>
+            <option value="+09:00">+9 (JST)</option>
+            <option value="+09:30">+9:30 (Central Australia)</option>
+            <option value="+10:00">+10 (AEST)</option>
+            <option value="+11:00">+11 (AEST(summer))</option>
+            <option value="+12:00">+12 (NZST/IDLE)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label title="reviewer is required, though 'anonymous' is allowed">reviewer*</label>
+          <input type="text" id="reviewer" value="anonymous" />
+        </div>
+        <div class="submit">
+           <button onclick="doreset(); return false;">Reset</button>
+          <button onclick="codeit(); return false;">Build It!</button> 
+        </div>
+        *- denotes required fields.
+      </fieldset>
+    </form>
+  </div>
+
+  <div class="output">
+    <h2>code</h2>
+    <textarea id="samplecode" rows="20" cols="50"></textarea>
+    <h2>compact code</h2>
+    <textarea id="compactcode" cols="50" rows="6" ></textarea>
+  </div>
+  <div id="previewblock">
+    <h2>preview</h2>
+    <div id="preview">
+      <span></span>
+    </div>
+  </div>
+  <div class="about">
+    <p style="margin-top:3em">This user interface, and the code behind it, is provided 
+      as an example for the benefit of 
+      <a href="http://microformats.org/wiki/microformat">microformat
+      open standards</a> developers, and to demonstrate the clear one to one correspondence 
+      between microformat fields and microformat code.  The code generated by this
+      interface may be used for semantic web pages, structured blogging, or any other
+      application that requires markup that is simultaneously human presentable and 
+      machine readable. Based on the 
+      <a href="http://tantek.com/microformats/hcard-creator.html">hCard creator</a> 
+      by <a href="http://tantek.com">Tantek Çelik</a>, which is based on the
+      <a href="http://gmpg.org/xfn/creator">XFN Creator</a> 
+      (v1.0 by <a href="http://photomatt.net">Matt Mullenweg</a>, v1.1 update by 
+      <a href="http://tantek.com" lang="tr">Tantek Çelik</a>). 
+    </p>
+    <p>To report any problems, or make any suggestions, please 
+      <a href="mailto:ryan@theryanking.com?subject=hcalendar creator feedback">email Ryan King</a>
+      </p>
+  </div>
+
+  <div id="footer">
+    <p id="copyright">Copyright &copy; 2005-2008 Ryan King. 
+      <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Some 
+      rights reserved</a>.
+    </p>
+  </div>
+</body>
+</html>

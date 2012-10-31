@@ -1,0 +1,721 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+  <title>hCalendar Creator</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+     <link rel="copyright" href="#copyright" title="Copyright" />
+  <meta name="author" lang="en" content="Ryan King" />
+  <style type="text/css">
+    /*<![CDATA[*/
+    label { float:left; clear:left; text-align:right; width:5em; padding-right:.2em; font-weight:bold; line-height:1.9em }
+    div.field { margin-bottom:.2em; font-size:smaller }
+    div.field input { width: 25em; line-height:2em }
+    div.field p.note {font-size:90%; margin-left: 5.7em; margin-top: 0;}
+    div.submit { margin:1em 0 1em 7em }
+    .submit button,.submit input { margin-left:1em }
+    div.inputs { width:25em; float:left; margin-right:2em }
+    form,fieldset { margin:0 }
+    h2 { margin:.3em 0 .1em 0; font-size:1em }
+    div.output { float:left }
+    div#preview { padding:.5em; background:#ccc; border:1px solid black; margin-right:2em }
+    div.about { clear:both; padding-top:4em }
+    #startHour,#startMinute,#endHour,#endMinute {width:2em}
+    #timezone {width:16em}
+    #previewblock{clear:left}
+    #summary, #location, #url, #description {width:25em}
+    /*]]>*/
+  </style>
+  <script src="../lib/jquery-1.2.1.pack.js" type="text/javascript"></script>
+  <script src="../lib/string.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../lib/DomCreate.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../lib/dom.js" type="text/javascript" charset="utf-8"></script>
+
+  <script type="text/javascript">
+    //<![CDATA[
+    var outputfield = "samplecode";
+
+    function saneify_inputs() {
+      if(parseInt($('#startHour').val()) > 23)   $('#startHour').val() = 23;
+      if(parseInt($('#startHour').val()) < 0)    $('#startHour').val() = 0;
+      if(parseInt($('#endHour').val()) > 23)     $('#endHour').val() = 23;
+      if(parseInt($('#startHour').val()) < 0)    $('#startHour').val() = 0;
+      if(parseInt($('#startMinute').val()) > 59) $('#startMinute').val() = 59;
+      if(parseInt($('#startHour').val()) < 0)    $('#startHour').val() = 0;
+      if(parseInt($('#endMinute').val()) > 59)   $('#endMinute').val() = 59;
+      if(parseInt($('#startHour').val()) < 0)    $('#startHour').val() = 0;
+    }
+
+    function codeit() {
+      if(!dirty_flag) {
+        setTimeout("codeit()", 500);
+        return;
+      }
+
+      saneify_inputs();
+      /* get values of text fields */
+      var summary        = $('#summary').val();
+      var url            = $('#url').val();
+      
+      var startdate      = get_startdate();
+      var enddate        = get_enddate();
+
+      var late = late_night()
+      
+      var startMonthText = $('#startMonth')[0].options[$('#startMonth')[0].selectedIndex].text;
+      var startDayText   = $('#startDay')[0].options[$('#startDay')[0].selectedIndex].text;
+      var endDayText     = $('#endDay')[0].options[$('#endDay')[0].selectedIndex].text;
+      var endMonthText   = $('#endMonth')[0].options[$('#endMonth')[0].selectedIndex].text;
+      
+      var timezone       = $('#timezone').val();
+      var description    = $('#description').val();
+      var tags           = $('#tags').val();
+      
+      if(!timezone) {
+        timezone = '';
+      } else if(timezone > 0) {
+        timezone = timezone;
+      }
+      
+      var dtstart = startdate.year.toString() + '-' + pad(startdate.month) + '-' + pad(startdate.day);
+      
+      if(!isNaN(startdate.hour)) {
+        //if there are no minutes given, assume that its the top of the hour
+        if(!startdate.minute) startdate.minute = '00';
+        dtstart += 'T' + pad(startdate.hour) + ':' + pad(startdate.minute.toString()) + timezone + "00";
+      }
+      
+      if($('#startHour').val().length == 0 && (startdate != enddate)){
+        //bump to the next day
+        var bump = true;
+        enddate.day = enddate.day + 1;
+      } else {
+        var bump = false;
+      }
+      
+      var dtend = pad(enddate.year.toString()) + '-' + pad(enddate.month.toString()) + '-' + pad(enddate.day.toString());
+
+      if(!isNaN(enddate.hour)) {
+        if(enddate.hour.length < 2) {
+          enddate.hour = '0' + enddate.hour;
+        }
+        //if there are no minutes given, assume that its the top of the hour
+        if(!enddate.minute) enddate.minute = '00';
+        dtend += 'T' + pad(enddate.hour) + ':' + pad(enddate.minute) + timezone;
+      }
+      
+      var startOut = startMonthText + ' ' + startDayText;
+      if ((startdate.day != enddate.day) || (startdate.month != enddate.month)) {
+        switch (startdate.day){
+          case 1:
+          case 21:
+            startOut += 'st';
+            break;
+          case 2:
+          case 22:
+            startOut += 'nd';
+            break;
+          case 3:
+          case 23:
+            startOut += 'rd';
+            break;
+          default:
+            startOut += 'th';
+            break;
+        }
+      }
+      
+      if(startdate.year != enddate.year) {
+        startOut += ', ' + startdate.year;
+      }
+      
+      var endOut = '';
+      if(!late) {
+        if(startdate.month != enddate.month || startdate.year != enddate.year) {
+          endOut += endMonthText + ' ';
+        }
+
+        if(!(startdate.month == enddate.month && startdate.year == enddate.year && startdate.day == enddate.day)) {
+          if ((startdate.day != enddate.day) && (startdate.month != enddate.month)){
+            endOut += enddate.day;
+            switch (enddate.day){
+              case 1:
+              case 21:
+                endOut += 'st';
+                break;
+              case 2:
+              case 22:
+                endOut += 'nd';
+                break;
+              case 3:
+              case 23:
+                endOut += 'rd';
+                break;
+              default:
+                endOut += 'th';
+                break;
+            }
+          } else if(!(startdate.day == (parseInt(enddate.day) - 1))) {
+            endOut += parseInt(enddate.day);
+            if ((startdate.day != enddate.day) || (startdate.month != enddate.month)){
+              switch (enddate.day){
+                case 1:
+                case 21:
+                  endOut += 'st';
+                  break;
+                case 2:
+                case 22:
+                  endOut += 'nd';
+                  break;
+                case 3:
+                case 23:
+                  endOut += 'rd';
+                  break;
+                default:
+                  endOut += 'th';
+                  break;
+              }
+            }
+          }
+        } else {
+          startOut += ', ' + startdate.year;
+        }
+      }
+    
+      if(startdate.hour && startdate.minute) {
+        startOut += ' ';
+        if (startdate.hour > 12){
+          startOut += ' ' + startdate.hour - 12;
+          var meridiem = 'pm';
+        } else if (startdate.hour == 12){
+          startOut += ' ' + startdate.hour;
+          var meridiem = 'pm';
+        } else {
+          startOut += ' ' + startdate.hour;
+          var meridiem = 'am';
+        }
+        if (!(startdate.minute == '00')){
+          startOut += ':' + pad(startdate.minute);
+        }
+
+        if(endOut) {
+          var collapse = true;
+        }
+
+        if (!enddate.hour || startdate.day != enddate.day || startdate.month != enddate.month){
+          startOut += meridiem;
+        }
+      }
+
+      if(enddate.hour && enddate.minute) {
+        if((!(startdate.day == enddate.day)) || (!(startdate.month == enddate.month))) {
+          endOut += ' '
+        }
+
+        if(enddate.hour > 12){
+          endOut += enddate.hour - 12;
+          var meridiem = 'pm';
+        } else if (enddate.hour == 12){
+          endOut += enddate.hour;
+          var meridiem = 'pm';
+        } else {
+          endOut += enddate.hour;
+          var meridiem = 'am';
+        }
+      
+        if(!(enddate.minute == '00')){
+          endOut += ':' + pad(enddate.minute);
+        }
+        endOut += meridiem;
+      }
+
+      if(!(startdate.month == enddate.month && startdate.year == enddate.year && startdate.day == enddate.day)) {
+        if(!(startdate.day == (parseInt(enddate.day) - 1)) || (!(startdate.month == enddate.month))){
+          endOut += ', ' + enddate.year;
+        } else {
+          endOut += ' ' + enddate.year; 
+        }
+      }
+
+      var location = $('#location').val();
+
+      /* set results field */
+      var result_div = DIV(
+        {'class' : 'vevent', 'id' : (summary != '' ? 'hcalendar-' + summary.replace(/ /g, '-') : '')}
+      );
+
+      if(url && url.match(/http:\/\/.*\..{2,4}.*/)) {
+        content_node = A({'class' : 'url', 'href' : url});
+        appendChildNodes(result_div, content_node);
+      } else {
+        var content_node = result_div;
+      }
+
+      appendChildNodes(
+        content_node, ABBR({'class' : 'dtstart', 'title' : dtstart}, startOut)
+      );
+
+      if(startdate.day != enddate.day ||
+        ((startdate.day == enddate.day) && !(startdate.hour + startdate.minute == enddate.hour + enddate.minute)) ) {
+        //TODO: wtf?
+        if((startdate.day != (parseInt(enddate.day) - 1)) || (startdate.month != enddate.month)){
+          if((startdate.day == enddate.day) && (startdate.month == enddate.month)) {
+            appendChildNodes(content_node, ' – ');
+          } else {
+            appendChildNodes(content_node, ' : ');
+          }
+        } else {
+          appendChildNodes(content_node, ', ');
+        }
+      }
+
+      if(!((startdate.year + startdate.month + startdate.day == enddate.year + enddate.month + enddate.day) && !enddate.hour)) {
+        appendChildNodes(
+          content_node, ABBR({'class' : 'dtend', 'title' : dtend}, endOut)
+        );
+      }
+
+      if(enddate.hour && enddate.minute) appendChildNodes(content_node, ' : ');
+      
+      appendChildNodes(
+        content_node, ' ', ''
+      );
+      
+      appendChildNodes(
+        content_node, SPAN({'class' : 'summary'}, summary)
+      );
+      
+      if(location) appendChildNodes(
+        content_node, ' at ', SPAN({'class' : 'location'}, location)
+      );
+
+      if(description) appendChildNodes(
+        result_div, DIV({'class' : 'description'}, description)
+      );
+
+      if(tags) {
+          var tag_list = tags.split(",");
+          var tags_div = DIV({'class' : 'tags'}, 'Tags: ');
+          for (var i in tag_list) {
+            appendChildNodes(
+              tags_div,
+              A({'rel': 'tag', 'href' : 'http://eventful.com/events/tags/' + encodeURI(trim(tag_list[i]))}, tag_list[i])
+            )
+          }
+          appendChildNodes(result_div, tags_div);
+      }
+      appendChildNodes(result_div, "\n\n");
+      appendChildNodes(
+        result_div,
+        P({'style' : {'font-size': 'smaller'}},
+          'This ',
+          A({'href' : 'http://microformats.org/wiki/hcalendar'}, 'hCalendar event'),
+          ' brought to you by the ',
+          A({'href' : 'http://microformats.org/code/hcalendar/creator'}, 'hCalendar Creator'), '.'
+       )
+     );
+
+      var wrap = DIV({}, result_div)
+      result = wrap.innerHTML;
+      // console.log(result);
+      $('#preview').html(result);
+      $('#samplecode').val(result);
+      
+      var regex = /\n/gi;
+      var temp = result.replace(regex,' ');
+      temp = temp.replace(/\s{2,}/gi,' ');
+      $('#compactcode').val(temp);
+      
+      dirty_flag = false;
+      setTimeout("codeit()", 500);
+    }
+
+    function doinit() {
+      $('input').change(window.dirty);
+      $('input').keyup(window.dirty);
+
+      $('select').change(window.dirty);
+      
+      $('#description, #startYear, #startMonth, #startDay, #endHour, #endMinute, #endDay, #endMonth, #endYear, #startHour').change(window.dirty);
+
+      $('#description').keyup(window.dirty);
+      activate_time();
+      doreset();
+    }
+
+    function update() {
+      dirty();
+    }
+
+    function get_startdate() {
+      var startdate    = new Object;
+      startdate.year   = $('#startYear').val();
+      startdate.month  = $('#startMonth').val();
+      startdate.day    = $('#startDay').val();
+      startdate.hour   = $('#startHour').attr('value');
+      startdate.minute = $('#startMinute').val();
+
+      if(startdate.hour && !startdate.minute) {
+        startdate.minute = '00';
+      }
+      return startdate;
+    }
+
+    function get_enddate(){
+      var enddate = new Object;
+      enddate.year =    parseInt($('#endYear').val(), 10);
+      enddate.month =   parseInt($('#endMonth').val(), 10);
+      enddate.day =     parseInt($('#endDay').val(), 10);
+      enddate.hour =    parseInt($('#endHour').val(), 10);
+      enddate.minute =  parseInt($('#endMinute').val(), 10);
+
+      return enddate;
+    }
+
+    function update_endtime() {
+      var enddate = get_enddate();
+      var startdate = get_startdate();
+
+      if(enddate.hour && startdate.hour &&
+        startdate.year == enddate.year && 
+        startdate.month == enddate.month &&
+        startdate.day == enddate.day) {
+
+        var startTime = startdate.hour + startdate.minute;
+        var endTime = enddate.hour + enddate.minute;
+
+        //just use pad()?
+        if(startTime.length == 3) startTime = '0' + startTime;
+        if(endTime.length == 3)   endTime   = '0' + endTime;
+
+        if(endTime < startTime){
+          increment_end_date();
+        }
+      }
+      dirty();
+    }
+
+    function increment_end_date() {
+
+      var enddate = get_enddate();
+
+      var d = new Date(enddate.year, parseInt(enddate.month) - 1, parseInt(enddate.day));
+
+      d.setDate(++enddate.day);
+
+      set_enddate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    }
+
+    function late_night() {
+      //a tantek feature: if the enddate is in the late night / early morning, roll over to the next day
+
+      //convert to date objects
+      var enddate = get_enddate();
+      if(parseInt(enddate.hour) < 6) {
+        var endDate = new Date(enddate.year, $('#endMonth')[0].selectedIndex, parseInt(enddate.day));
+
+        var startDate = new Date(parseInt($('#startYear').val()), parseInt($('#startMonth')[0].selectedIndex), parseInt($('#startDay').val()));
+        //increment and test
+
+        startDate.setDate(startDate.getDate() + 1);
+
+        if(startDate.getYear() == endDate.getYear() && startDate.getMonth() == endDate.getMonth() && startDate.getDay() == endDate.getDay()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function escape_output(input){
+      //this is not the most robust solution, but it should cover most cases
+      var amp = /\s&\s/gi;
+      var lt = /\s\<\s/gi;
+      var gt = /\s>\s/gi;
+
+      var temp = input.replace(amp,' &amp; ');
+      temp = temp.replace(lt,' &lt; ');
+      var output = temp.replace(gt,' &gt; ');
+      return output;
+    }
+
+    function set_startdate(year, month, day, hour, minute) {
+      if(year)   $('#startYear').val(year);
+      if(month)  $('#startMonth').val(pad(month));
+      if(day)    $('#startDay').val(pad(day));
+      if(hour)   $('#startHour').val(pad(hour));
+      if(minute) $('#startMinute').val(pad(minute));
+    }
+
+    function set_enddate(year, month, day, hour, minute) {
+      if (year)   $('#endYear').val(year);
+      if (month)  $('#endMonth')[0].selectedIndex = pad(month - 1);
+      if (day)    $('#endDay')[0].selectedIndex = pad(day - 1);
+      if (hour)   $('#endHour').val(pad(hour));
+      if (minute) $('#endMinute').val(pad(minute));
+    }
+
+    function doreset() {
+      var d = new Date();
+
+      var month = d.getMonth() + 1;
+      var day = d.getDate();
+      set_startdate(d.getFullYear(), month, day);
+      set_enddate(d.getFullYear(), month, day);
+
+      var timezone = d.getTimezoneOffset();
+      timezone = -timezone / 60;
+      timezone = timezone + ":00";
+      if(timezone.length == 5)
+        timezone = timezone.charAt(0) + "0" + timezone.substring(1);
+
+      if(parseInt(timezone) > 0) {
+        timezone = "+" + timezone;
+      }
+
+      $('#timezone').val(timezone);
+      dirty();
+      codeit();
+    }
+
+    function pad(input) {
+      if(input.toString().length < 2) {
+        input = '0' + input.toString();
+      }
+      return input;
+    }
+
+    function dirty() {
+      dirty_flag = true;
+    }
+
+    function activate_time(){
+      if($('#startHour').val().length > 0){
+        //enable endHour and endMinute
+        $('#endHour').disabled = '';
+        $('#endMinute').disabled = '';
+      } else {
+        //disable
+        $('#endHour').disabled = 'disabled';
+        $('#endMinute').disabled = 'disabled';
+      }
+    }
+
+    $(window.doinit);
+
+    var dirty_flag = false;
+    //]]>
+  </script>
+</head>
+<body>
+<h1><a href="http://microformats.org/wiki/hcalendar">hCalendar</a> Creator</h1>
+
+<div class="inputs">
+<form action="" onreset="doreset();">
+ <fieldset><legend><a href="http://microformats.org/wiki/hcalendar">hCalendar</a>-o-matic</legend>
+ <!-- url, summary, dtstart, dtend, location -->
+ <div class="field">
+   <label for="summary">summary</label>
+   <input type="text" id="summary" value="event title" />
+ </div>
+ <div class="field">
+   <label for="location">location</label>
+   <input type="text" id="location" />
+ </div>
+ <div class="field">
+   <label for="url">url</label>
+   <input type="text" id="url" value="http://"/> 
+ </div>
+
+ <div class="field">
+    <label for="startMonth">start</label>
+    <select id="startMonth" >
+        <option value="01">January</option>  <option value="02">February</option>
+        <option value="03">March</option>    <option value="04">April</option>
+        <option value="05">May</option>      <option value="06">June</option>
+        <option value="07">July</option>     <option value="08">August</option>
+        <option value="09">September</option><option value="10">October</option>
+        <option value="11">November</option> <option value="12">December</option>
+    </select>
+    <select id="startDay" >
+        <option value="01">1</option> <option value="02">2</option>
+        <option value="03">3</option> <option value="04">4</option>
+        <option value="05">5</option> <option value="06">6</option>
+        <option value="07">7</option> <option value="08">8</option>
+        <option value="09">9</option> <option value="10">10</option>
+        <option value="11">11</option><option value="12">12</option>
+        <option value="13">13</option><option value="14">14</option>
+        <option value="15">15</option><option value="16">16</option>
+        <option value="17">17</option><option value="18">18</option>
+        <option value="19">19</option><option value="20">20</option>
+        <option value="21">21</option><option value="22">22</option>
+        <option value="23">23</option><option value="24">24</option>
+        <option value="25">25</option><option value="26">26</option>
+        <option value="27">27</option><option value="28">28</option>
+        <option value="29">29</option><option value="30">30</option>
+        <option value="31">31</option>
+    </select>
+    <select id="startYear" >
+        <option value="2004">2004</option>
+        <option value="2005">2005</option>
+        <option value="2006">2006</option>
+        <option value="2007">2007</option>
+        <option value="2008">2008</option>
+        <option value="2009">2009</option>
+        <option value="2010">2010</option>
+        <option value="2011">2011</option>
+        <option value="2012">2012</option>
+        <option value="2013">2013</option>
+    </select>
+    <input type="text" id="startHour" maxlength="2" /> :
+    <input type="text" id="startMinute" maxlength="2" />
+ </div>
+
+ <div class="field">
+    <label for="endMonth">end</label>
+    <select id="endMonth" >
+        <option value="01">January</option>
+        <option value="02">February</option>
+        <option value="03">March</option>
+        <option value="04">April</option>
+        <option value="05">May</option>
+        <option value="06">June</option>
+        <option value="07">July</option>
+        <option value="08">August</option>
+        <option value="09">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+    </select>
+    <select id="endDay" >
+        <option value="01">1</option> <option value="02">2</option>
+        <option value="03">3</option> <option value="04">4</option>
+        <option value="05">5</option> <option value="06">6</option>
+        <option value="07">7</option> <option value="08">8</option>
+        <option value="09">9</option> <option value="10">10</option>
+        <option value="11">11</option><option value="12">12</option>
+        <option value="13">13</option><option value="14">14</option>
+        <option value="15">15</option><option value="16">16</option>
+        <option value="17">17</option><option value="18">18</option>
+        <option value="19">19</option><option value="20">20</option>
+        <option value="21">21</option><option value="22">22</option>
+        <option value="23">23</option><option value="24">24</option>
+        <option value="25">25</option><option value="26">26</option>
+        <option value="27">27</option><option value="28">28</option>
+        <option value="29">29</option><option value="30">30</option>
+        <option value="31">31</option>
+    </select>
+    <select id="endYear">
+        <option value="2004">2004</option>
+        <option value="2005">2005</option>
+        <option value="2006">2006</option>
+        <option value="2007">2007</option>
+        <option value="2008">2008</option>
+        <option value="2009">2009</option>
+        <option value="2010">2010</option>
+        <option value="2011">2011</option>
+        <option value="2012">2012</option>
+        <option value="2013">2013</option>
+    </select>
+    <input type="text" id="endHour" maxlength="2" /> :
+    <input type="text" id="endMinute" maxlength="2" />
+ </div>
+ <div class="field">
+    <label for="timezone">TZ</label>
+    <select id="timezone">
+        <option value="">none</option>
+        <option value="-12:00">-12 (IDLW)</option>
+        <option value="-11:00">-11 (NT)</option>
+        <option value="-10:00">-10 (HST)</option>
+        <option value="-09:00">-9 (AKST)</option>
+        <option value="-08:00">-8 (PST/AKDT)</option>
+        <option value="-07:00">-7 (MST/PDT)</option>
+        <option value="-06:00">-6 (CST/MDT)</option>
+        <option value="-05:00">-5 (EST/CDT)</option>
+        <option value="-04:00">-4 (AST/EDT)</option>
+        <option value="-03:45">-3:45</option>
+        <option value="-03:30">-3:30</option>
+        <option value="-03:00">-3 (ADT)</option>
+        <option value="-02:00">-2 (AT)</option>
+        <option value="-01:00">-1 (WAT)</option>
+        <option value="Z">+0 (GMT/UTC)</option>
+        <option value="+01:00">+1 (CET/BST/IST/WEST)</option>
+        <option value="+02:00">+2 (EET/CEST)</option>
+        <option value="+03:00">+3 (MSK/EEST)</option>
+        <option value="+03:30">+3:30 (Iran)</option>
+        <option value="+04:00">+4 (ZP4/MSD)</option>
+        <option value="+04:30">+4:30 (Afghanistan)</option>
+        <option value="+05:00">+5 (ZP5)</option>
+        <option value="+05:30">+5:30 (India)</option>
+        <option value="+06:00">+6 (ZP6)</option>
+        <option value="+06:30">+6:30 (Burma)</option>
+        <option value="+07:00">+7 (WAST)</option>
+        <option value="+08:00">+8 (WST)</option>
+        <option value="+09:00">+9 (JST)</option>
+        <option value="+09:30">+9:30 (Central Australia)</option>
+        <option value="+10:00">+10 (AEST)</option>
+        <option value="+11:00">+11 (AEST(summer))</option>
+        <option value="+12:00">+12 (NZST/IDLE)</option>
+    </select>
+    hour(s) from <abbr title="Greenwich Mean time">GMT</abbr>
+ </div>
+
+ <div class="field">
+    <label for="description">description</label>
+    <textarea id="description" cols="33" rows="5"></textarea>
+ </div>
+ <div class="field">
+    <label for="tags">tags</label>
+   <input type="text" id="tags" />
+   <p class="note">(comma separated)</p>
+ </div>
+
+ <div class="submit">
+   <button onclick="doreset(); return false;">Reset</button>
+   <button onclick="codeit(); return false;">Build It!</button> 
+ </div>
+ </fieldset>
+</form>
+</div>
+
+<div class="output">
+<h2>code</h2>
+<textarea id="samplecode" rows="15" cols="50">
+</textarea>
+<h2>compact code</h2>
+<textarea id="compactcode" cols="50" rows="6">
+</textarea>
+</div>
+
+<div id="previewblock">
+<h2>preview</h2>
+<div id="preview">
+<span></span>
+</div>
+</div>
+
+<div class="about">
+<p style="margin-top:3em">This user interface, and the code behind it, is provided 
+as an example for the benefit of 
+<a href="http://microformats.org/wiki/microformat">microformat
+ open standards</a> developers, and to demonstrate the clear one to one correspondence 
+ between microformat fields and microformat code.  The code generated by this
+ interface may be used for semantic web pages, structured blogging, or any other
+ application that requires markup that is simultaneously human presentable and 
+ machine readable. Based on the 
+ <a href="http://tantek.com/microformats/hcard-creator.html">hCard creator</a> 
+ by <a href="http://tantek.com">Tantek Çelik</a>, which is based on the
+<a href="http://gmpg.org/xfn/creator">XFN Creator</a> 
+(v1.0 by <a href="http://ma.tt/">Matt Mullenweg</a>, v1.1 update by 
+<a href="http://tantek.com/" lang="tr">Tantek Çelik</a>). 
+</p>
+
+<p>To report any problems, or make any suggestions, please <a href="mailto:ryan@theryanking.com?subject=hcalendar creator feedback">email Ryan King</a></p>
+</div>
+
+<div id="footer"><p id="copyright">
+Copyright &copy; 2005-2008 Ryan King. 
+<a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Some 
+rights reserved</a>.</p></div>
+
+ </body>
+</html>

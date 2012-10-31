@@ -1,0 +1,320 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+  <title>hCard Creator</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link rel="copyright" href="#copyright" title="Copyright" />
+  <meta name="author" lang="tr" content="Tantek Çelik" />
+  <style type="text/css">
+    /*<![CDATA[*/
+    body {font-size: 16px;}
+    label {
+      text-align:right; 
+      font-weight:bold; 
+      /*\*/ line-height:1.8em; /*/ line-height:1.2em; /**/
+      width:12em; 
+      padding-right:.2em;
+    }
+    div.field label:first-child {
+      float:left; 
+      clear:left;  
+      /*\*/ line-height:1.6em; height:1.8em /**/ 
+    }
+    div.field { margin-bottom:.6em; font-size:smaller }
+    div.field input { width: 18.2em; height:1.7em; line-height:2.3em }
+    div.submit { margin:1em 0 1em 7em }
+    .submit button,.submit input { margin-left:1em }
+    div.inputs { width:28em; float:left; margin-right:2em }
+    form,fieldset { margin:0 }
+    h2 { margin:.3em 0 .1em 0; font-size:1em }
+    div.output { float:left; width:50%; }
+    div#preview { padding:.5em; background:#ccc; border:1px solid black; margin-right:2em; font-size:90% }
+    div.about { clear:both; padding-top:4em }
+    textarea{font-family:sans-serif; font-size:12px;}
+    input#givenname,input#familyname,input#additionalname,input#city, input#region {width:10.8em}
+    input#postal {width:8em}
+    div#warning {
+      font-weight:bold;
+      background-color: red;
+      display:none;
+    }
+    /*]]>*/
+  </style>
+
+  <script type="text/javascript" src="../lib/jquery-1.2.1.pack.js"></script>
+  <script type="text/javascript" src="../lib/template.js"></script>
+  <script src="../lib/string.js" type="text/javascript" charset="utf-8"></script>
+  <script type="text/javascript">
+    //<![CDATA[
+    var outputfield = "#samplecode";
+
+    function NormalizeSpace(str) {
+      if (str) {
+        str = str.replace(/^\s*|\s*$/g, '');
+        return str.replace(/\s+/g,' ');
+      }
+    }
+
+    function filter(fn, l) {
+      r = [];
+      if(fn == null) {
+        for(i in l){
+          if (l[i]){
+            r.push(l[i])
+          }
+        }
+      } else {
+        for(i in l) {
+          if (fn(l[i])){
+            r.push(l[i])
+          }
+        }
+      }
+      return r;
+    }
+
+    function codeit() {
+      /* get values of text fields */
+      var givenname = NormalizeSpace($('#givenname').val());
+      var additionalname = NormalizeSpace($('#additionalname').val());
+      var familyname = NormalizeSpace($('#familyname').val());
+      var url = $('#url').val();
+      var aim = $('#aim').val();
+      var yim = $('#yim').val();
+      var jabber = $('#jabber').val();
+      var vorg = $('#vorg').val();
+      var email = $('#email').val();
+      var street = $("#street").val();
+      var city = $("#city").val();
+      var region = $("#region").val();
+      var postal = $("#postal").val();
+      var country = $("#country").val();
+      var phone = $("#phone").val();
+      var photo = $("#photo").val();
+      var tags = $('#tags').val();
+
+      var templates = {
+        vcard:            '<div id="${id}" class="vcard">${content}</div>',
+        given_name :      '  <span class="given-name">${given_name}</span>',
+        additional_name : '  <span class="additional-name">${additional_name}</span>',
+        family_name :     '  <span class="family-name">${family_name}</span>',
+        photo :           '  <img style="float:left; margin-right:4px" src="${photo_url}" alt="photo of ${fn}" class="photo"/>',
+        org :             ' <div class="org">${org}</div>',
+        // TODO: add obfuscation here
+        email :           ' <a class="email" href="mailto:${email}">${email}<\/a>',
+        street_address :  '  <div class="street-address">${street_address}<\/div>',
+        city :            '  <span class="locality">${city}<\/span>',
+        region :          '  <span class="region">${region}<\/span>',
+        postal_code :     '  <span class="postal-code">${postal_code}</span>',
+        country_name :    '  <span class="country-name">${country}<\/span>',
+        tel :             ' <div class="tel">${tel}</div>',
+/*      TODO: add encodeURIComponent to templates  */
+        aim :             ' <a class="url" href="aim:goim?screenname=${aim}">AIM<\/a>\n',
+        yim :             ' <a class="url" href="ymsgr:sendIM?${yim}">YIM<\/a>\n',
+        jabber :          ' <a class="url" href="xmpp:${jabber}">Jabber</a>\n',
+        tags :              '<div class="tags">${tags}</div>',
+        tag :             '<a href="${url}">${term}</a>',
+        ad :              '<p style="font-size:smaller;">This <a href="http://microformats.org/wiki/hcard">hCard</a> created with the <a href="http://microformats.org/code/hcard/creator">hCard creator</a>.</p>'
+      };
+
+      var implied_n_opt = ((additionalname == undefined || additionalname == "") && (givenname && givenname.indexOf(' ') == -1) && (familyname && familyname.indexOf(' ') == -1));
+      if(implied_n_opt) {
+        var fn = filter(null, [givenname, familyname]).join(' ');
+      } else {
+        var fn = templates.given_name.process({given_name : givenname}) + "\n";
+        var fn_text = givenname;
+        if (additionalname != "") {
+          fn += templates.additional_name.process({additional_name : additionalname}) + "\n";
+        }
+        fn += templates.family_name.process({family_name : familyname}) + "\n";
+      }
+      /* set results field */
+      var fn_id = (filter(null, [givenname, additionalname, familyname]).length > 0 ? filter(null, ['hcard', givenname, additionalname, familyname]).join(' ').replace(/ /g, '-'): '');
+      var resultstr = '<div id="' + fn_id + '" class="vcard">\n';
+      if(photo && photo.match(/http:\/\/.*\..{2,4}.*\/.+/)) resultstr += templates.photo.process({photo_url:photo, fn:fn_text}) + "\n";
+      if(url && url.match(/http\:\/\/.*\..{2,4}.*/)) { // make sure the url at least looks like a url before we load it
+        resultstr += ' <a class="url fn';
+        if (!implied_n_opt) {
+          resultstr += ' n';
+        }
+        resultstr += '" href="' + url + '">'+fn+'<\/a>\n';
+      } else {
+        resultstr += ' <span class="' + (implied_n_opt ? 'fn':'fn n') + '">';
+        resultstr += (implied_n_opt ? '':'\n  ') + fn + '<\/span>\n';
+      }
+      if(vorg) resultstr += templates.org.process({ org : vorg}) + "\n";
+      if(email) resultstr += templates.email.process({email : email}) + "\n";
+      if(street || city || region || postal || country) {
+        resultstr += ' <div class="adr">\n';
+        if(street) resultstr += templates.street_address.process({street_address : street}) + "\n";
+        var csz = "";
+        if(city) csz += templates.city.process({city: city}) + "\n";
+        if(region) {
+          if(csz) csz += ', \n';
+          csz += templates.region.process({region : region}) + "\n";
+        }
+        if(postal) {
+          if(csz) csz += ', \n';
+          csz += templates.postal_code.process({postal_code : postal}) + "\n";
+        }
+        if(country) {
+          if(csz) csz += '\n';
+          csz += templates.country_name.process({country : country}) + "\n";
+        }
+        if(csz) csz += '\n';
+        resultstr += csz + ' <\/div>\n';
+       }
+       if(phone) resultstr += templates.tel.process({tel: phone}) + "\n";
+       if(aim) resultstr += templates.aim.process({ aim : aim}) + "\n";
+       if(yim) resultstr += templates.yim.process({yim : yim}) + "\n";
+       if(jabber) resultstr += templates.jabber.process({jabber : jabber}) + "\n";
+       if(tags) {
+           var tag_list = tags.split(',');
+           var temp = '';
+           for (var i in tag_list) {
+               temp += templates.tag.process({term : trim(tag_list[i]), url : 'http://kitchen.technorati.com/contacts/tag/' + trim(tag_list[i])}) + ' ';
+           }
+           resultstr += templates.tags.process({tags : temp})
+       }
+       resultstr += templates.ad.process({}) + "\n";
+       resultstr += '<\/div>';
+       $(outputfield).val(resultstr);
+       $("#preview").html(resultstr);
+       if (email || phone || yim || aim || jabber) {
+         $("#warning").css('display', "inline");
+       } else {
+         $("#warning").css('display', "none");
+       }
+     }
+
+    function doinit() {
+      $('input').keyup(window.codeit);
+      $('input').click(window.codeit);
+
+      doreset();
+    }
+
+    function doreset() {
+      codeit();
+    }
+    $(window.doinit);
+    //]]>
+  </script>
+</head>
+<body>
+  
+<h1><a href="http://microformats.org/wiki/hcard">hCard</a> Creator</h1>
+
+<div class="inputs">
+<form action="" onreset="doreset();">
+ <fieldset><legend><a href="http://microformats.org/wiki/hcard">hCard</a>-o-matic</legend>
+
+ <div class="field">
+  <label for="givenname">given name</label>
+  <input type="text" id="givenname" />
+ </div>
+ <div class="field">
+  <label for="additionalname">middle name</label>
+  <input type="text" id="additionalname" value="" />
+ </div>
+ <div class="field">
+  <label for="familyname">family name</label>
+  <input type="text" id="familyname" />
+ </div>
+ <div class="field">
+  <label for="vorg">organization</label>
+  <input type="text" id="vorg" value="" /> 
+ </div>
+
+ <div class="field">
+  <label for="street">street</label>
+  <input type="text" id="street" />
+ </div>
+ <div class="field">
+  <label for="city">city</label>
+  <input type="text" id="city" />
+ </div>
+ <div class="field">
+  <label for="region">state/province</label>
+  <input type="text" id="region" />
+ </div>
+ <div class="field">
+  <label for="postal">postal code</label>
+  <input type="text" id="postal" />
+ </div>
+ <div class="field">  
+  <label for="country">country name</label>
+  <input type="text" id="country" />
+ </div>
+ <div class="field">
+  <label for="phone">phone</label>
+
+  <input type="text" id="phone" />
+ </div>
+ <div class="field">
+  <label for="email">email</label>
+  <input type="text" id="email" /> 
+ </div>
+ <div class="field">
+  <label for="url">url</label>
+  <input type="text" id="url" /> 
+ </div>
+ <div class="field">
+  <label for="photo">photo url</label>
+
+  <input type="text" id="photo" /> 
+ </div>
+ <div class="field">
+  <label for="aim"><abbr title="AOL Instant Messenger">AIM</abbr> screenname</label>
+  <input type="text" id="aim" /> 
+ </div>
+ <div class="field">
+  <label for="yim"><abbr title="Yahoo Instant Messenger">YIM</abbr> screenname</label>
+  <input type="text" id="yim" /> 
+ </div>
+ <div class="field">
+  <label for="jabber">Jabber screenname</label>
+  <input type="text" id="jabber" /> 
+ </div>
+ <div class="field">
+  <label for="tags">tags (comma separated)</label>
+  <input type="text" id="tags" />
+ </div>
+ <div class="submit">
+  <input type="reset" />
+  <button onclick="codeit(); return false;">Build It!</button> 
+ </div>
+ </fieldset>
+</form>
+</div>
+
+<div class="output">
+
+<div id="warning">
+  <p>Warning - publishing your email address, phone number or instant messenger screenname on the web can open it up to abuse.</p>
+</div>
+
+<h2>code</h2>
+<textarea id="samplecode" rows="12" cols="70"></textarea>
+<h2>preview</h2>
+<div id="preview">
+<span></span>
+</div>
+</div>
+
+<div class="about">
+<p style="margin-top:3em">This user interface, and the code behind it, is provided as an example for the benefit of <a href="http://microformats.org/">microformat open standards</a> developers, and to demonstrate the clear 
+one to one correspondence between microformat fields and microformat code.  The code generated by this interface may be used for semantic web pages, structured blogging, or any other application that requires markup that is simultaneously human presentable and machine readable.  Based on the 
+<a href="http://gmpg.org/xfn/creator">XFN Creator</a> (v1.0 by <a href="http://photomatt.net">Matt Mullenweg</a>, v1.1 update by <a href="http://tantek.com" lang="tr">Tantek Çelik</a>). 
+</p>
+
+<p>To report any problems, or make any suggestions, please <a href="mailto:ryan@theryanking.com?subject=hcard creator feedback">email Ryan King</a></p>
+
+</div>
+ 
+<div id="footer"><p id="copyright">
+Copyright &copy; 2005 Tantek Çelik.  <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Some rights reserved</a>.</p></div>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="../lib/jsunit/app/jsUnitCore.js" type="text/javascript" charset="utf-8"></script>
+    <script src="../lib/jquery-1.1.3.1.pack.js" type="text/javascript" charset="utf-8"></script>
+    <script src="../creators/hreview.js" type="text/javascript" charset="utf-8"></script>
+    
+    <script language="JavaScript" type="text/javascript">
+    
+      function test_pad() {
+        assertEquals("pad should add a 0 in front of '1'", '01', pad('1'));
+        assertEquals("pad should not add a 0 in front of '01'", '01', pad('01'));
+        assertEquals("pad should take integers", '01', pad(1));
+        assertEquals("pad should take integers", '10', pad(10));
+      }
+      
+      function test_format_dt(){
+        assertEquals("should format just the year", '2007', format_dt(2007))
+        assertEquals("should format just the year", '2007', format_dt('2007'))
+
+        assertEquals("should format just the year", '2007-07', format_dt(2007, 7))
+        assertEquals("should format just the year", '2007-07', format_dt('2007', '07'))
+
+        assertEquals("should format ymd",           '2007-07-07',       format_dt('2007', '07', '07'));
+        assertEquals("should accept integers",      '2007-07-07',       format_dt(2007, 7, 7));
+        assertEquals("should accept integers",      '2007-07-07',       format_dt(2007, 7, 7));
+        assertEquals("should format hours+minutes", '2007-07-07T07:07', format_dt('2007', '07', '07', '07', '07'))
+
+        assertEquals("should display timezones", '2007-07-07T07:07-07:00', format_dt('2007', '07', '07', '07', '07', '-07:00'));
+        assertEquals("should display timezones", '2007-07-07T07:07+07:00', format_dt('2007', '07', '07', '07', '07', '+07:00'));
+      }
+      
+      function test_rating_stars() {
+        assertEquals("display 1 stars", "★☆☆☆☆", rating_stars(1));
+        assertEquals("display 2 stars", "★★☆☆☆", rating_stars(2));
+        assertEquals("display 3 stars", "★★★☆☆", rating_stars(3));
+        assertEquals("display 4 stars", "★★★★☆", rating_stars(4));
+        assertEquals("display 5 stars", "★★★★★", rating_stars(5));
+      }
+      
+    </script>
+
+  </head>
+  <body>
+
+  </body>
+</html>
