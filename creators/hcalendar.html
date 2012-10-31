@@ -82,13 +82,12 @@
       if(!isNaN(startdate.hour)) {
         //if there are no minutes given, assume that its the top of the hour
         if(!startdate.minute) startdate.minute = '00';
-        dtstart += 'T' + pad(startdate.hour) + ':' + pad(startdate.minute.toString()) + timezone + "00";
+        dtstart += 'T' + pad(startdate.hour) + ':' + pad(startdate.minute.toString()) + timezone;
       }
       
       if($('#startHour').val().length == 0 && (startdate != enddate)){
         //bump to the next day
         var bump = true;
-        enddate.day = enddate.day + 1;
       } else {
         var bump = false;
       }
@@ -244,7 +243,7 @@
         {'class' : 'vevent', 'id' : (summary != '' ? 'hcalendar-' + summary.replace(/ /g, '-') : '')}
       );
 
-      if(url && url.match(/http:\/\/.*\..{2,4}.*/)) {
+      if(url && url.match(/https?:\/\/.*\..{2,4}.*/)) {
         content_node = A({'class' : 'url', 'href' : url});
         appendChildNodes(result_div, content_node);
       } else {
@@ -252,7 +251,7 @@
       }
 
       appendChildNodes(
-        content_node, ABBR({'class' : 'dtstart', 'title' : dtstart}, startOut)
+        content_node, TIME({'datetime' : dtstart, 'class' : 'dtstart'}, startOut)
       );
 
       if(startdate.day != enddate.day ||
@@ -260,7 +259,7 @@
         //TODO: wtf?
         if((startdate.day != (parseInt(enddate.day) - 1)) || (startdate.month != enddate.month)){
           if((startdate.day == enddate.day) && (startdate.month == enddate.month)) {
-            appendChildNodes(content_node, ' – ');
+            appendChildNodes(content_node, '–');
           } else {
             appendChildNodes(content_node, ' : ');
           }
@@ -271,7 +270,7 @@
 
       if(!((startdate.year + startdate.month + startdate.day == enddate.year + enddate.month + enddate.day) && !enddate.hour)) {
         appendChildNodes(
-          content_node, ABBR({'class' : 'dtend', 'title' : dtend}, endOut)
+          content_node, TIME({'datetime' : dtend, 'class' : 'dtend'}, endOut)
         );
       }
 
@@ -295,11 +294,12 @@
 
       if(tags) {
           var tag_list = tags.split(",");
-          var tags_div = DIV({'class' : 'tags'}, 'Tags: ');
+          var tags_div = DIV({}, 'Categories: ');
           for (var i in tag_list) {
+            if (i>0) { appendChildNodes(tags_div, ', '); }
             appendChildNodes(
               tags_div,
-              A({'rel': 'tag', 'href' : 'http://eventful.com/events/tags/' + encodeURI(trim(tag_list[i]))}, tag_list[i])
+              SPAN({'class': 'category'}, tag_list[i])
             )
           }
           appendChildNodes(result_div, tags_div);
@@ -709,13 +709,11 @@ as an example for the benefit of
 <a href="http://tantek.com/" lang="tr">Tantek Çelik</a>). 
 </p>
 
-<p>To report any problems, or make any suggestions, please <a href="mailto:ryan@theryanking.com?subject=hcalendar creator feedback">email Ryan King</a></p>
+<p>To report any problems or make any suggestions, please send feedback to the <a href="http://microformats.org/wiki/irc">#microformats IRC channel on Freenode</a>.</p>
 </div>
 
 <div id="footer"><p id="copyright">
-Copyright &copy; 2005-2008 Ryan King. 
-<a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Some 
-rights reserved</a>.</p></div>
+Copyright &copy; 2005-2012 Tantek Çelik, Ryan King. <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Some rights reserved</a>.</p></div>
 
  </body>
 </html>
