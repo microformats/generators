@@ -114,7 +114,6 @@
         jabber :          ' <a class="url" href="xmpp:${jabber}">Jabber</a>\n',
         tags :              '<div>${tags}</div>',
         tag :             '<span class="category">${term}</span>',
-        ad :              '<p style="font-size:smaller;">This <a href="http://microformats.org/wiki/hcard">hCard</a> created with the <a href="http://microformats.org/code/hcard/creator">hCard creator</a>.</p>'
       };
 
       var implied_n_opt = ((additionalname == undefined || additionalname == "") && (givenname && givenname.indexOf(' ') == -1) && (familyname && familyname.indexOf(' ') == -1));
@@ -177,7 +176,6 @@
            }
            resultstr += templates.tags.process({tags : temp})
        }
-       resultstr += templates.ad.process({}) + "\n";
        resultstr += '<\/div>';
        $(outputfield).val(resultstr);
        $("#preview").html(resultstr);
