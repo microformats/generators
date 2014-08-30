@@ -148,7 +148,7 @@
         resultstr += ' <div class="adr">\n';
         if(street) resultstr += templates.street_address.process({street_address : street}) + "\n";
         var csz = "";
-        if(city) csz += templates.city.process({city: city}) + "\n";
+        if(city) csz += templates.city.process({city: city});
         if(region) {
           if(csz) csz += ', \n';
           csz += templates.region.process({region : region}) + "\n";
