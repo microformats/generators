@@ -75,6 +75,7 @@
 
     function codeit() {
       /* get values of text fields */
+      var title = NormalizeSpace($('#title').val());
       var givenname = NormalizeSpace($('#givenname').val());
       var additionalname = NormalizeSpace($('#additionalname').val());
       var familyname = NormalizeSpace($('#familyname').val());
@@ -95,6 +96,7 @@
 
       var templates = {
         vcard:            '<div id="${id}" class="vcard">${content}</div>',
+        title:            '  <span class="title">${title}</span>',
         given_name :      '  <span class="given-name">${given_name}</span>',
         additional_name : '  <span class="additional-name">${additional_name}</span>',
         family_name :     '  <span class="family-name">${family_name}</span>',
@@ -120,6 +122,9 @@
       if(implied_n_opt) {
         var fn = filter(null, [givenname, familyname]).join(' ');
       } else {
+        if (title != "") {
+          var fn += templates.title.process({title : title}) + "\n";
+        }
         var fn = templates.given_name.process({given_name : givenname}) + "\n";
         var fn_text = givenname;
         if (additionalname != "") {
@@ -128,7 +133,7 @@
         fn += templates.family_name.process({family_name : familyname}) + "\n";
       }
       /* set results field */
-      var fn_id = (filter(null, [givenname, additionalname, familyname]).length > 0 ? filter(null, ['hcard', givenname, additionalname, familyname]).join(' ').replace(/ /g, '-'): '');
+      var fn_id = (filter(null, [title, givenname, additionalname, familyname]).length > 0 ? filter(null, ['hcard', title, givenname, additionalname, familyname]).join(' ').replace(/ /g, '-'): '');
       var resultstr = '<div id="' + fn_id + '" class="vcard">\n';
       if(photo && photo.match(/https?:\/\/.*\..{2,4}.*\/.+/)) resultstr += templates.photo.process({photo_url:photo, fn:fn_text}) + "\n";
       if(url && url.match(/https?\:\/\/.*\..{2,4}.*/)) { // make sure the url at least looks like a url before we load it
@@ -208,6 +213,10 @@
 <form action="" onreset="doreset();">
  <fieldset><legend><a href="http://microformats.org/wiki/hcard">hCard</a>-o-matic</legend>
 
+ <div class="field">
+  <label for="title">title</label>
+  <input type="text" id="title" />
+ </div>
  <div class="field">
   <label for="givenname">given name</label>
   <input type="text" id="givenname" />
