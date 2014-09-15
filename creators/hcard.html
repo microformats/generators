@@ -134,6 +134,7 @@
         fn += templates.family_name.process({family_name : familyname}) + "\n";
       }
       /* set results field */
+      // FIXME: fix title not being displayed in output
       var fn_id = (filter(null, [title, givenname, additionalname, familyname]).length > 0 ? filter(null, ['hcard', title, givenname, additionalname, familyname]).join(' ').replace(/ /g, '-'): '');
       var resultstr = '<div id="' + fn_id + '" class="vcard">\n';
       if(photo && photo.match(/https?:\/\/.*\..{2,4}.*\/.+/)) resultstr += templates.photo.process({photo_url:photo, fn:fn_text}) + "\n";
