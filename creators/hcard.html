@@ -119,11 +119,12 @@
       };
 
       var implied_n_opt = ((additionalname == undefined || additionalname == "") && (givenname && givenname.indexOf(' ') == -1) && (familyname && familyname.indexOf(' ') == -1));
+      var fn;
       if(implied_n_opt) {
-        var fn = filter(null, [givenname, familyname]).join(' ');
+        fn = filter(null, [givenname, familyname]).join(' ');
       } else {
         if (title != "") {
-          var fn += templates.title.process({title : title}) + "\n";
+          fn += templates.title.process({title : title}) + "\n";
         }
         var fn = templates.given_name.process({given_name : givenname}) + "\n";
         var fn_text = givenname;
