@@ -75,6 +75,7 @@
 
     function codeit() {
       /* get values of text fields */
+      var title = NormalizeSpace($('#title').val());
       var givenname = NormalizeSpace($('#givenname').val());
       var additionalname = NormalizeSpace($('#additionalname').val());
       var familyname = NormalizeSpace($('#familyname').val());
@@ -95,6 +96,7 @@
 
       var templates = {
         vcard:            '<div id="${id}" class="vcard">${content}</div>',
+        title:            '  <span class="title">${title}</span>',
         given_name :      '  <span class="given-name">${given_name}</span>',
         additional_name : '  <span class="additional-name">${additional_name}</span>',
         family_name :     '  <span class="family-name">${family_name}</span>',
@@ -107,20 +109,23 @@
         region :          '  <span class="region">${region}<\/span>',
         postal_code :     '  <span class="postal-code">${postal_code}</span>',
         country_name :    '  <span class="country-name">${country}<\/span>',
-        tel :             ' <div class="tel">${tel}</div>',
+        tel :             ' <div class="tel"><a class="tel" href="tel:+1${tel}">${tel}</a></div>',
 /*      TODO: add encodeURIComponent to templates  */
         aim :             ' <a class="url" href="aim:goim?screenname=${aim}">AIM<\/a>\n',
         yim :             ' <a class="url" href="ymsgr:sendIM?${yim}">YIM<\/a>\n',
         jabber :          ' <a class="url" href="xmpp:${jabber}">Jabber</a>\n',
         tags :              '<div>${tags}</div>',
         tag :             '<span class="category">${term}</span>',
-        ad :              '<p style="font-size:smaller;">This <a href="http://microformats.org/wiki/hcard">hCard</a> created with the <a href="http://microformats.org/code/hcard/creator">hCard creator</a>.</p>'
       };
 
       var implied_n_opt = ((additionalname == undefined || additionalname == "") && (givenname && givenname.indexOf(' ') == -1) && (familyname && familyname.indexOf(' ') == -1));
+      var fn;
       if(implied_n_opt) {
-        var fn = filter(null, [givenname, familyname]).join(' ');
+        fn = filter(null, [givenname, familyname]).join(' ');
       } else {
+        if (title != "") {
+          fn += templates.title.process({title : title}) + "\n";
+        }
         var fn = templates.given_name.process({given_name : givenname}) + "\n";
         var fn_text = givenname;
         if (additionalname != "") {
@@ -129,7 +134,8 @@
         fn += templates.family_name.process({family_name : familyname}) + "\n";
       }
       /* set results field */
-      var fn_id = (filter(null, [givenname, additionalname, familyname]).length > 0 ? filter(null, ['hcard', givenname, additionalname, familyname]).join(' ').replace(/ /g, '-'): '');
+      // FIXME: fix title not being displayed in output
+      var fn_id = (filter(null, [title, givenname, additionalname, familyname]).length > 0 ? filter(null, ['hcard', title, givenname, additionalname, familyname]).join(' ').replace(/ /g, '-'): '');
       var resultstr = '<div id="' + fn_id + '" class="vcard">\n';
       if(photo && photo.match(/https?:\/\/.*\..{2,4}.*\/.+/)) resultstr += templates.photo.process({photo_url:photo, fn:fn_text}) + "\n";
       if(url && url.match(/https?\:\/\/.*\..{2,4}.*/)) { // make sure the url at least looks like a url before we load it
@@ -148,13 +154,13 @@
         resultstr += ' <div class="adr">\n';
         if(street) resultstr += templates.street_address.process({street_address : street}) + "\n";
         var csz = "";
-        if(city) csz += templates.city.process({city: city}) + "\n";
+        if(city) csz += templates.city.process({city: city});
         if(region) {
           if(csz) csz += ', \n';
           csz += templates.region.process({region : region}) + "\n";
         }
         if(postal) {
-          if(csz) csz += ', \n';
+          if(csz) csz += '\n';
           csz += templates.postal_code.process({postal_code : postal}) + "\n";
         }
         if(country) {
@@ -165,6 +171,7 @@
         resultstr += csz + ' <\/div>\n';
        }
        if(phone) resultstr += templates.tel.process({tel: phone}) + "\n";
+        // TODO: remove hyphens from a.tel link
        if(aim) resultstr += templates.aim.process({ aim : aim}) + "\n";
        if(yim) resultstr += templates.yim.process({yim : yim}) + "\n";
        if(jabber) resultstr += templates.jabber.process({jabber : jabber}) + "\n";
@@ -177,7 +184,6 @@
            }
            resultstr += templates.tags.process({tags : temp})
        }
-       resultstr += templates.ad.process({}) + "\n";
        resultstr += '<\/div>';
        $(outputfield).val(resultstr);
        $("#preview").html(resultstr);
@@ -210,6 +216,10 @@
 <form action="" onreset="doreset();">
  <fieldset><legend><a href="http://microformats.org/wiki/hcard">hCard</a>-o-matic</legend>
 
+ <div class="field">
+  <label for="title">title</label>
+  <input type="text" id="title" />
+ </div>
  <div class="field">
   <label for="givenname">given name</label>
   <input type="text" id="givenname" />
