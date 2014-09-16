@@ -171,6 +171,7 @@
         resultstr += csz + ' <\/div>\n';
        }
        if(phone) resultstr += templates.tel.process({tel: phone}) + "\n";
+        // TODO: remove hyphens from a.tel link
        if(aim) resultstr += templates.aim.process({ aim : aim}) + "\n";
        if(yim) resultstr += templates.yim.process({yim : yim}) + "\n";
        if(jabber) resultstr += templates.jabber.process({jabber : jabber}) + "\n";
