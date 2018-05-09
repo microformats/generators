@@ -79,7 +79,8 @@
       var additionalname = NormalizeSpace($('#additionalname').val());
       var familyname = NormalizeSpace($('#familyname').val());
       var url = $('#url').val();
-      var aim = $('#aim').val();
+      var twitter = $('#twitter').val();
+      var linkedin = $('#linkedin').val();
       var yim = $('#yim').val();
       var jabber = $('#jabber').val();
       var vorg = $('#vorg').val();
@@ -109,7 +110,8 @@
         country_name :    '  <span class="country-name">${country}<\/span>',
         tel :             ' <div class="tel">${tel}</div>',
 /*      TODO: add encodeURIComponent to templates  */
-        aim :             ' <a class="url" href="aim:goim?screenname=${aim}">AIM<\/a>\n',
+        twitter :         ' <a class="url" https://twitter.com/${twitter}">Twitter<\/a>\n',
+        linkedin:         '  <a class="url" https://www.linkedin.com/in/${linkedin}">LinkedIn<\/a>\n',
         yim :             ' <a class="url" href="ymsgr:sendIM?${yim}">YIM<\/a>\n',
         jabber :          ' <a class="url" href="xmpp:${jabber}">Jabber</a>\n',
         tags :              '<div>${tags}</div>',
